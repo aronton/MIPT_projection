@@ -15,6 +15,12 @@
 
 using namespace std;
 
+void U1(int Nqubit ,int d1, int d2, kron &kr, sparse_matrix_t &A, struct matrix_descr &descrA, MKL_Complex8 aph, MKL_Complex8 bet);
+void U2(int d1, int d2, kron kr );
+void M1(int d1, int d2, kron kr );
+void M2(int d1, int d2, kron kr );
+
+
 int main(int argc, char *argv[])
 {
 
@@ -62,10 +68,12 @@ int main(int argc, char *argv[])
 	//File
 	char efilename[110];
 	char cfilename[110];
-	sprintf(efilename, "../output/%s%d~%d(%d)%s%d%s%.2f%s%.2f%s%.2f", "Nqubit=", Initial_Nqubit, Final_Nqubit, Incre_Nqubit, "Nsample=", Nsample, "IniRate=", initalRate
+	sprintf(efilename, "../output1/%s%d~%d(%d)%s%d%s%.2f%s%.2f%s%.2f", "Nqubit=", Initial_Nqubit, Final_Nqubit, Incre_Nqubit, "Nsample=", Nsample, "IniRate=", initalRate
 		, "FinalRate=", finalRate, "RateIncre=", rateIncrease);
-	sprintf(cfilename, "../output/%s%d~%d(%d)%s%d%s%.2f%s%.2f%s%.2f", "cri_Nqubit=", Initial_Nqubit, Final_Nqubit, Incre_Nqubit, "Nsample=", Nsample, "IniRate=", initalRate
+	sprintf(cfilename, "../output1/%s%d~%d(%d)%s%d%s%.2f%s%.2f%s%.2f", "cri_Nqubit=", Initial_Nqubit, Final_Nqubit, Incre_Nqubit, "Nsample=", Nsample, "IniRate=", initalRate
 		, "FinalRate=", finalRate, "RateIncre=", rateIncrease);
+
+	// string folder = "./data"
 
 	ofstream entropy(efilename, ios::out);
 	ofstream crtic(cfilename, ios::out);
@@ -82,7 +90,8 @@ int main(int argc, char *argv[])
 	start = clock();
 	for (Nqubit = Initial_Nqubit; Nqubit <= Final_Nqubit; Nqubit = Nqubit + Incre_Nqubit)
 	{
-
+		// folder = folder + "/" + to_string(Nqubit);
+		
 		int rateStep; 
 		if(rateIncrease > 0)
 			rateStep = ((int)((finalRate - initalRate) / rateIncrease + 1));
@@ -115,6 +124,8 @@ int main(int argc, char *argv[])
 			
 		for (int rate = 0; rate < rateStep; rate++)
 		{
+			// folder = folder + "/" + to_string(rate)
+
 			rateStart = clock();
 			entropy << "Rate : " << initalRate + rateIncrease * rate << "\n\n";
 			cout << "Rate : " << initalRate + rateIncrease * rate << "\n\n";
@@ -138,12 +149,16 @@ int main(int argc, char *argv[])
 							{
 								d1 = 1;
 								d2 = (int)pow(2, Nqubit - 2);
-								kr.Haar();
-								kr.kronUI(d2);
-								mkl_sparse_c_create_csr(&A, SPARSE_INDEX_BASE_ZERO, 4 * (int)pow(2, Nqubit - 2), 4 * (int)pow(2, Nqubit - 2), kr.GetPB(), kr.GetPE(), kr.GetCol(), kr.GetValues());
-								mkl_sparse_c_mv(SPARSE_OPERATION_NON_TRANSPOSE, aph, A, descrA, kr.Getv(), bet, kr.Getvv());
-								mkl_sparse_destroy(A);
-								cblas_ccopy((int)pow(2, Nqubit), kr.Getvv(), 1, kr.Getv(), 1);
+							// void U1(int Nqubit ,int d1, int d2, kron kr, sparse_matrix_t A, struct matrix_descr descrA, MKL_Complex8 aph, MKL_Complex8 bet);
+
+								U1(Nqubit, d1, d2, kr, A, descrA, aph, bet );
+
+								// kr.Haar();
+								// kr.kronUI(d2);
+								// mkl_sparse_c_create_csr(&A, SPARSE_INDEX_BASE_ZERO, 4 * (int)pow(2, Nqubit - 2), 4 * (int)pow(2, Nqubit - 2), kr.GetPB(), kr.GetPE(), kr.GetCol(), kr.GetValues());
+								// mkl_sparse_c_mv(SPARSE_OPERATION_NON_TRANSPOSE, aph, A, descrA, kr.Getv(), bet, kr.Getvv());
+								// mkl_sparse_destroy(A);
+								// cblas_ccopy((int)pow(2, Nqubit), kr.Getvv(), 1, kr.Getv(), 1);
 								
 							}
 							else if ((j + 1) == Nqubit / 2)
@@ -709,3 +724,35 @@ int main(int argc, char *argv[])
 	entropy << "Total Time Cost : " << (end - start) / CLOCKS_PER_SEC;
 }
 
+
+
+void U1(int Nqubit ,int d1, int d2, kron &kr, sparse_matrix_t &A, struct matrix_descr &descrA, MKL_Complex8 aph, MKL_Complex8 bet)
+{
+	kr.Haar();
+	kr.kronUI(d2);
+	mkl_sparse_c_create_csr(&A, SPARSE_INDEX_BASE_ZERO, 4 * d2, 4 * d2, kr.GetPB(), kr.GetPE(), kr.GetCol(), kr.GetValues());
+	mkl_sparse_c_mv(SPARSE_OPERATION_NON_TRANSPOSE, aph, A, descrA, kr.Getv(), bet, kr.Getvv());
+	mkl_sparse_destroy(A);
+	cblas_ccopy((int)pow(2, Nqubit), kr.Getvv(), 1, kr.Getv(), 1);
+}
+
+		// kron kr((int)pow(2, Nqubit - 2), EElength, AElength);
+		// Measure mr((int)pow(2, Nqubit - 1));
+
+		// sparse_matrix_t A;
+		// struct matrix_descr descrA;
+		// descrA.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+		// sparse_matrix_t plus;
+		// struct matrix_descr descrplus;
+		// descrplus.type = SPARSE_MATRIX_TYPE_DIAGONAL;
+		// descrplus.diag = SPARSE_DIAG_NON_UNIT;
+
+		// sparse_matrix_t minus;
+		// struct matrix_descr descrminus;
+		// descrminus.type = SPARSE_MATRIX_TYPE_DIAGONAL;
+		// descrminus.diag = SPARSE_DIAG_NON_UNIT;
+
+// void U2(int d1, int d2, kr, );
+// void M1(int d1, int d2, kr, );
+// void M2(int d1, int d2, kr, );
